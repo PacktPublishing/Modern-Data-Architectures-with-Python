@@ -1,0 +1,67 @@
+spark.sql(f"DROP DATABASE IF EXISTS {database_name} CASCADE;") 
+
+
+from pyspark.sql.types import StructField, DateType, StringType, FloatType, StructType 
+
+
+database_name = "chapter_2_lab" 
+
+spark.sql(f" CREATE DATABASE IF NOT EXISTS {database_name} LOCATION 'dbfs:/tmp/accounting_alpha' ;") 
+
+
+table_name = "returns_bronze" 
+
+schema = StructType([StructField("Date", DateType(), True), 
+
+                     StructField("Account", StringType(), True), 
+
+                     StructField("Debit", FloatType(), True), 
+
+                     StructField("Credit", FloatType(), True) 
+
+                    ]) 
+
+
+data_frame = spark.createDataFrame(data = [], schema = schema) 
+
+full_table_name = database_name + "."+ table_name 
+
+data_frame.write.format("delta").mode("overwrite").saveAsTable(full_table_name) 
+
+
+from datetime import datetime 
+
+schema = StructType([StructField("Date", DateType(), True), 
+
+                     StructField("Account", StringType(), True), 
+
+                     StructField("Debit", FloatType(), True), 
+
+                     StructField("Credit", FloatType(), True) 
+
+                    ]) 
+
+
+data = [(datetime.strptime("1981-11-21", '%Y-%m-%d'), "Banking", 1000.0, 0.1), (datetime.strptime("1776-08-02", '%Y-%m-%d') , "Cash",0.1, 3000.2), (datetime.strptime("1948-05-14", '%Y-%m-%d'), "Land",0.5,10000.5)] 
+
+data_frame = spark.createDataFrame(data = data, schema = schema) 
+
+data_frame.write.format("delta").mode("append").saveAsTable(full_table_name) 
+
+
+schema = StructType([StructField("Date", DateType(), True), 
+
+                     StructField("Account", StringType(), True), 
+
+                     StructField("Debit", FloatType(), True), 
+
+                     StructField("Credit", FloatType(), True), 
+
+                      StructField("Country", StringType(), True), 
+
+                    ]) 
+
+
+data_frame = spark.createDataFrame(data = [], schema = schema) 
+
+data_frame.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(full_table_name) 
