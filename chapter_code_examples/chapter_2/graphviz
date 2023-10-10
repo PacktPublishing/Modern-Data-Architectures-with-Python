@@ -1,0 +1,75 @@
+ 
+
+digraph { 
+
+    graph [pad="1.1", nodesep="1.7", ranksep="2.7"]; 
+
+    node [shape=plain] 
+
+    rankdir=LR; 
+
+
+Books [label=< 
+
+<table border="0.1" cellborder="1.2" cellspacing="0.5"> 
+
+  <tr><td><i>Books Table</i></td></tr> 
+
+  <tr><td port="1">ID</td></tr> 
+
+  <tr><td port="2">Sales_Assistant</td></tr> 
+
+  <tr><td port="3">Name</td></tr> 
+
+  <tr><td port="4">ISBN</td></tr> 
+
+  <tr><td port="5">Purchase_Date</td></tr> 
+
+</table>>]; 
+
+
+Computers [label=< 
+
+<table border="0.1" cellborder="1.2" cellspacing="0.5"> 
+
+  <tr><td><i>Computers Table</i></td></tr> 
+
+  <tr><td port="6">ID</td></tr> 
+
+  <tr><td port="7">Sales_Assistant</td></tr> 
+
+  <tr><td port="8">Model</td></tr> 
+
+  <tr><td port="9">Purchase_Date</td></tr> 
+
+</table>>]; 
+
+
+Sales [label=< 
+
+<table border="0.1" cellborder="1.2" cellspacing="0.5"> 
+
+  <tr><td><i>Sales Table</i></td></tr> 
+
+  <tr><td port="10">ID</td></tr> 
+
+  <tr><td port="8">Sales_Assistant</td></tr> 
+
+  <tr><td port="9">Purchase_Date</td></tr> 
+
+</table>>]; 
+
+
+Books:1 -> Sales:10 
+
+Books:2 -> Sales:8 
+
+Books:5 -> Sales:9 
+
+Computers:6 -> Sales:10 
+
+Computers:7 -> Sales:8 
+
+Computers:9 -> Sales:9 
+
+} 
