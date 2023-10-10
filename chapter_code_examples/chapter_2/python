@@ -1,0 +1,208 @@
+# Initial setup page 3
+
+from functools import partial
+
+from pyspark.sql import SparkSession
+
+from pyspark.sql.functions import (
+    col,
+    when,
+    regexp_replace,
+    flatten,
+    explode,
+    struct,
+    create_map,
+    array,
+)
+
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    ArrayType,
+    TimestampType,
+)
+
+spark = SparkSession.builder.appName("chap_2").master("local[*]").getOrCreate()
+
+
+# cleaning and preparing data  Page 4
+
+
+data_frame = spark.createDataFrame(
+    data=[
+        ("Brian", "Engr", 1),
+        ("Nechama", "Engr", 2),
+        ("Naava", "Engr", 3),
+        ("Miri", "Engr", 4),
+        ("Brian", "Engr", 1),
+        ("Miri", "Engr", 3),
+    ],
+    schema=["name", "div", "ID"],
+)
+
+data_frame.distinct().show(truncate=False)
+
+data_frame.dropDuplicates().show(truncate=False)
+
+data_frame.dropDuplicates(["ID"]).show(truncate=False)
+
+
+data_frame_2 = spark.createDataFrame(
+    data=[
+        ("Brian," "Engr", 1),
+        ("Nechama", "", None),
+        ("Naava", "Engr", 3),
+        ("Miri", "", 4),
+        ("Brian", "Engr", None),
+        ("Miri", "", 3),
+    ],
+    schema=["name", "div", "ID"],
+)
+
+data_frame = spark.createDataFrame(
+    data=[
+        ("Brian", "Engr", 1),
+        ("Nechama", "Engr", None),
+        ("Naava", "Engr", 3),
+        ("Miri", "Engr", 4),
+        ("Brian", "Engr", None),
+        ("Miri", "Engr", 3),
+    ],
+    schema=["name", "div", "ID"],
+)
+
+
+data_frame.filter(col("ID").isNull()).show()
+
+data_frame.filter(col("ID").isNotNull()).show()
+
+data_frame.filter(col("ID").isNotNull() & (col("name").isNotNull())).show()
+
+data_frame.select(col("*"), col("ID").isNull().alias("null")).show()
+
+data_frame_2.select(
+    col("*"), when(col("div") == "", None).otherwise(col("div")).alias("cleaned_div")
+).show()
+
+data_frame.select(col("*"), regexp_replace("ID", "1", "10").alias("fixed_ID")).show()
+
+data_frame.select(
+    col("*"), regexp_replace("name", "^Mi", "mi").alias("cleaned_name")
+).show()
+
+data_frame_3 = spark.createDataFrame(
+    data=[
+        ("Brian", "Engr", 1),
+        ("Nechama", "Engr", 1),
+        ("Naava", "Engr", 3),
+        ("Miri", "Engr", 5),
+        ("Brian", "Engr", 7),
+        ("Miri", "Engr", 9),
+    ],
+    schema=["name", "div", "ID"],
+)
+
+
+data_frame_3.select(
+    col("name"),
+    *[when(~col("ID").between(3, 10), "yes").otherwise("no").alias("outlier")]
+).show()
+
+data_frame_4 = spark.createDataFrame(
+    data=[
+        ("Brian", "Engr", "1"),
+        ("Nechama", "Engr", "1"),
+        ("Naava", "Engr", "3"),
+        ("Miri", "Engr", "5"),
+        ("Brian", "Engr", "7"),
+        ("Miri", "Engr", "9"),
+    ],
+    schema=["name", "div", "ID"],
+)
+
+data_frame_4.schema
+
+data_frame_4.select(col("*"), col("ID").cast("int").alias("cleaned_ID")).show()
+
+data_frame_4.select(col("ID"), col("name").alias("user_name")).show()
+
+
+schema_5 = StructType(
+    [
+        StructField(
+            "user",
+            StructType(
+                [
+                    StructField("name", StringType(), True),
+                    StructField("age", IntegerType(), True),
+                    StructField("id", IntegerType(), True),
+                ]
+            ),
+        ),
+        StructField("codes", ArrayType(StringType()), True),
+        StructField("location_id", IntegerType(), True),
+    ]
+)
+
+
+data_5 = [(("Bruce Lee", 21, 1), [5, 6, 7, 8], 9)]
+
+data_frame_5 = spark.createDataFrame(data=data_5, schema=schema_5)
+
+# complex data page 14
+
+schema_5 = StructType(
+    [
+        StructField(
+            "user",
+            StructType(
+                [
+                    StructField("name", StringType(), True),
+                    StructField("age", IntegerType(), True),
+                    StructField("id", IntegerType(), True),
+                ]
+            ),
+        ),
+        StructField("codes", ArrayType(StringType()), True),
+        StructField("location_id", IntegerType(), True),
+    ]
+)
+
+
+data_5 = [(("Bruce Lee", 21, 1), [5, 6, 7, 8], 9)]
+
+data_frame_5 = spark.createDataFrame(data=data_5, schema=schema_5)
+
+data_frame_5.select("user.name").show()
+
+data_frame_5.select(col("codes")[0]).show()
+
+data_frame_6 = spark.createDataFrame(
+    [([[9, 7], [56, 12], [23, 43]],), ([[400, 500]],)], ["random_stuff"]
+)
+
+data_frame_6.show(truncate=False)
+
+data_frame_6.select(flatten("random_stuff")).show(truncate=False)
+
+data_frame_5.select(col("location_id"), explode("codes").alias("new")).show()
+
+data_frame_7 = spark.createDataFrame(
+    [({"apple": "red"}, 1), ({"orange": "orange"}, 2)], ["fruit", "id"]
+)
+
+data_frame_7.show(truncate=False)
+
+data_frame_7.select(col("id"), explode("fruit")).show()
+
+test = data_frame_4.select(
+    col("id"),
+    create_map("id", struct(["name", "div"])).alias("complex_map"),
+    array(["name", "div"]).alias("complex_array"),
+)
+
+test.show(truncate=False)
+
+test.schema
