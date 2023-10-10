@@ -240,4 +240,3 @@ with Diagram("Dataplatform", show=False, filename="dataplatform_custom"):
         dashboards = Custom("Tiny", "./tabl.png")
 
         dashboards << compute
-

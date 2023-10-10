@@ -1,0 +1,45 @@
+from pyspark.sql import SparkSession
+
+bronze_sales = spark.createDataFrame(
+    data=[
+        ("1", "LA", "2000-01-01", 5, 1400),
+        ("2", "LA", "1998-2-01", 4, 1500),
+        ("2", "LA", "1998-2-01", 4, 1500),
+        ("3", "LA", "1997-4-01", 6, 1300),
+        ("4", "LA", "2005-5-01", 2, 1100),
+        ("NA", "LA", "2013-6-01", 1, 1200),
+    ],
+    schema=["sales_id", "city", "dat", " clerk_id", "total_sales"],
+)
+
+# 1.
+
+one = bronze_sales.select(col("*"), col("dat").alias("date")).drop("dat")
+
+# 2.
+two = (
+    bronze_sales.select(
+        col("*"),
+        when(col("sales_id") == "NA", None)
+        .otherwise(col("sales_id"))
+        .alias("cleaned_sales_id"),
+    )
+    .drop("sales_id")
+    .select(col("*"), col("cleaned_sales_id").alias("sales_id"))
+    .drop("cleaned_sales_id")
+)
+
+
+# 3.
+three = two.na.drop(subset=["sales_id"])
+
+# 4.
+four = two.dropDuplicates(subset=["sales_id"])
+
+# 5.
+five = (
+    one.select(col("*"), to_date("date").alias("date_fixed"))
+    .drop("date")
+    .select(col("*"), col("date_fixed").alias("date"))
+    .drop("date_fixed")
+)
