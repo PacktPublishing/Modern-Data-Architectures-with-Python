@@ -1,0 +1,213 @@
+# page 7  shuffle partitions
+spark.conf.set("spark.sql.shuffle.partitions",100) 
+
+my_data_frame.persist() 
+
+#page 9 broadcasting
+
+from pyspark.sql.functions import broadcast 
+
+my_data_frame.join(broadcast(my_data_frame_2), my_data_frame.id == my_data_frame_2.id) 
+
+# page 11
+spark.conf.set("spark.sql.adaptive.enabled",false) 
+
+ 
+spark.conf.set("spark.sql.adaptive.enabled",true) 
+
+#page 13
+
+database_name = "simple_database" 
+
+spark.sql(f" CREATE DATABASE IF NOT EXISTS {database_name} COMMENT 'Lets create a managed database';") 
+
+spark.sql(f"DESCRIBE DATABASE {database_name}").show() 
+
+spark.sql(f"DROP DATABASE IF EXISTS {database_name} CASCADE;") 
+
+# page 14
+
+spark.sql(f" CREATE DATABASE IF NOT EXISTS {database_name} LOCATION 'dbfs:/tmp/test' COMMENT 'Lets create a un-managed database located in /tmp/';") 
+
+spark.sql(f" DROP DATABASE IF EXISTS {database_name} CASCADE;") 
+
+#page 14
+
+ 
+
+spark.catalog.currentDatabase() 
+
+spark.catalog.setCurrentDatabase(database_name) 
+
+
+spark.catalog.databaseExists(database_name) 
+
+
+spark.catalog.listDatabases() 
+
+
+#page 15
+
+
+database_name = "simple_database" 
+
+spark.sql(f" CREATE SCHEMA IF NOT EXISTS {database_name} COMMENT 'Lets create a managed database using schema';") 
+
+ 
+data_frame = spark.createDataFrame(data = [("Brian", 1, 1),  
+
+    ("John", 2, 2),  
+
+    ("Sam", 3, 3), 
+
+    ("Nechama Dina", 4, 4),  
+
+    ("Mary", 5, 5) 
+
+  ], schema = ["name", "age", "SSN"]) 
+
+
+table_name = "chapter_2" 
+
+full_table_name = database_name + "."+ table_name 
+
+data_frame.write.format("delta").mode("overwrite").saveAsTable(full_table_name) 
+
+spark.catalog.listTables() 
+
+# page 16
+spark.sql(f"describe table  {full_table_name}").show() 
+
+from delta.tables import DeltaTable 
+
+deltaTable = DeltaTable.forName(spark, full_table_name) 
+
+deltaTable.detail().show() 
+
+#page 17
+
+ 
+
+location_unmanaged = "/tmp/delta-table" 
+
+data_frame.write.mode("overwrite").option("path", location_unmanaged).saveAsTable("unmanaged_table") 
+
+data_frame.write.format("delta").mode("overwrite").save(location_unmanaged) 
+
+#page 18
+
+spark.read.format("delta").load(location_unmanaged).show() 
+
+deltaTable = DeltaTable.forPath(spark, location_unmanaged) 
+
+deltaTable.toDF().show() 
+
+deltaTable = DeltaTable.forName(spark, full_table_name) 
+
+deltaTable.toDF().show()
+
+spark.table(full_table_name).show() 
+
+#page 19
+
+schema = data_frame.schema 
+
+schema.add("height", "string", True) 
+
+data_frame_2 = spark.createDataFrame(data = [], schema = schema) 
+
+data_frame_2.write.format("delta").mode("append").saveAsTable(full_table_name) 
+
+data_frame_2.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(full_table_name) 
+
+ # page 20
+
+import deltaTable
+
+deltaTable.delete("age < 2") 
+
+from pyspark.sql.functions import col, lit 
+
+deltaTable.update( 
+
+  condition = col('ssn') == 2, 
+
+  set = { 'name': lit('Yitzy') } ,
+
+  set = { 'age': lit(100) } 
+
+) 
+ 
+
+update = spark.createDataFrame(data = [("Brian", 1, 1, 299),  
+
+    ("John", 2, 2, 400),  
+
+    ("Sam", 3, 3, 300), 
+
+    ("Nechama Dina", 4, 4, 500),  
+
+    ("Mary", 5, 5, 1000), 
+
+    ("Monster", 7, 7, 1000)                                    
+
+  ], schema = ["name", "age", "SSN", "height"])
+
+  #page 22
+
+spark.sql(f"ALTER TABLE {full_table_name} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)") 
+
+
+spark.read.format("delta")
+.option("readChangeFeed", "true")\ 
+.option("startingVersion", 0)\  
+.option("endingVersion", 10)\  
+.table(full_table_name) 
+
+fullHistoryDF = deltaTable.history()   
+
+
+
+df = spark.read \ 
+
+  .format("delta") \ 
+
+  .option("versionAsOf", "5238") \  
+
+  .load("/path/to/my/table") 
+
+ 
+ 
+
+df = spark.read \ 
+
+  .format("delta") \ 
+
+  .load("/path/to/my/table@v5238")  
+
+  deltaTable.optimize().where("date='2021-11-18'").executeCompaction() 
+
+# page 24
+
+deltaTable.vacuum()     
+ 
+deltaTable.vacuum(9)  
+ 
+deltaTable.optimize().executeCompaction() 
+
+deltaTable.optimize().where("date='YYYY-MM-DD'").executeCompaction() 
+
+deltaTable.optimize().executeZOrderBy(COLUMUN NAME) 
+
+deltaTable.optimize().where("date=' YYYY-MM-DD'").executeZOrderBy(COLUMUN NAME) 
+
+#page 26
+
+spark.sql(f" 
+
+CREATE BLOOMFILTER INDEX 
+
+ON TABLE {full_table_name} 
+
+FOR COLUMNS(SSN OPTIONS (fpp=0.01, numItems=60000000))")" 
+
