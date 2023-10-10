@@ -206,3 +206,38 @@ test = data_frame_4.select(
 test.show(truncate=False)
 
 test.schema
+
+# page 19 , diagrams
+
+from diagrams import Cluster, Diagram
+
+from diagrams.aws.analytics import Quicksight, EMR
+
+
+with Diagram("Data Platform", show=False):
+    with Cluster("Dev"):
+        dashboards = Quicksight("Tableau")
+
+        spark_clusters = [EMR("Notebook_cluster"), EMR("Jobs_cluster")]
+
+        dashboards >> spark_clusters
+
+
+from diagrams import Cluster, Diagram
+
+from diagrams import Diagram, Cluster
+
+from diagrams.custom import Custom
+
+
+with Diagram("Dataplatform", show=False, filename="dataplatform_custom"):
+    with Cluster("Prod - VPC"):
+        compute = [
+            Custom("Tiny", "./db_cluster.png"),
+            Custom("Med", "./db_cluster.png"),
+        ]
+
+        dashboards = Custom("Tiny", "./tabl.png")
+
+        dashboards << compute
+
